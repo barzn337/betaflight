@@ -81,7 +81,7 @@ typedef struct adjustmentConfig_s {
     adjustmentData_t data;
 } adjustmentConfig_t;
 
-#define MAX_ADJUSTMENT_RANGE_COUNT 30
+#define MAX_ADJUSTMENT_RANGE_COUNT 15
 
 typedef struct adjustmentRange_s {
     // when aux channel is in range...

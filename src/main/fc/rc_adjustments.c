@@ -802,8 +802,15 @@ static void processContinuosAdjustments(controlRateConfig_t *controlRateConfig)
                     if (adjustmentFunction == ADJUSTMENT_RATE_PROFILE && systemConfig()->rateProfile6PosSwitch) {
                         switchPositions =  6;
                     }
+
+                    // Allow adjustment to a specific profile # (Only relevant for LED, OSD, RATE profile adjustment):
+                    // Enabled if 'adjustmentCenter' is set non-zero.
+                    // The specific profile # to adjust to is set by 'adjustmentScale'.
+                    bool custPosition = adjustmentRange->adjustmentCenter != 0 && (adjustmentFunction == ADJUSTMENT_LED_PROFILE || adjustmentFunction == ADJUSTMENT_OSD_PROFILE || adjustmentFunction == ADJUSTMENT_RATE_PROFILE);
+
                     const uint16_t rangeWidth = (2100 - 900) / switchPositions;
-                    const uint8_t position = (constrain(rcData[channelIndex], 900, 2100 - 1) - 900) / rangeWidth;
+                    const uint8_t position = custPosition ? ((uint8_t) adjustmentRange->adjustmentScale) : ((constrain(rcData[channelIndex], 900, 2100 - 1) - 900) / rangeWidth);
+
                     newValue = applySelectAdjustment(adjustmentFunction, position);
 
                     setConfigDirtyIfNotPermanent(&adjustmentRange->range);
