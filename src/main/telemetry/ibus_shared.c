@@ -254,13 +254,13 @@ static uint16_t getRPM(void)
 static uint16_t getMode(void)
 {
     uint16_t flightMode = 1; //Acro
-    if (FLIGHT_MODE(ANGLE_MODE)) {
+    if (FLIGHT_MODE(ANGLE_MODE | ALT_HOLD_MODE)) {
          flightMode = 0; //Stab
     }
     if (FLIGHT_MODE(PASSTHRU_MODE)) {
         flightMode = 3; //Auto
     }
-    if (FLIGHT_MODE(HEADFREE_MODE) || FLIGHT_MODE(MAG_MODE)) {
+    if (FLIGHT_MODE(HEADFREE_MODE | MAG_MODE)) {
         flightMode = 4; //Guided! (there in no HEAD, MAG so use Guided)
     }
     if (FLIGHT_MODE(HORIZON_MODE)) {
@@ -275,7 +275,7 @@ static uint16_t getMode(void)
 #if defined(USE_ACC)
 static int16_t getACC(uint8_t index)
 {
-    return (int16_t)((acc.accADC[index] * acc.dev.acc_1G_rec) * 1000);
+    return (int16_t)((acc.accADC.v[index] * acc.dev.acc_1G_rec) * 1000);
 }
 #endif
 
@@ -283,9 +283,8 @@ static int16_t getACC(uint8_t index)
 static void setCombinedFrame(uint8_t* bufferPtr, const uint8_t* structure, uint8_t itemCount)
 {
     uint8_t offset = 0;
-    uint8_t size = 0;
     for (unsigned i = 0; i < itemCount; i++) {
-        size = getSensorLength(structure[i]);
+        uint8_t size = getSensorLength(structure[i]);
         setValue(bufferPtr + offset, structure[i], size);
         offset += size;
     }
@@ -306,11 +305,9 @@ static bool setGPS(uint8_t sensorType, ibusTelemetry_s* value)
     }
     if (!result) return result;
 
-    uint16_t gpsFixType = 0;
-    uint16_t sats = 0;
     if (sensors(SENSOR_GPS)) {
-        gpsFixType = !STATE(GPS_FIX) ? 1 : (gpsSol.numSat < GPS_MIN_SAT_COUNT ? 2 : 3);
-        sats = gpsSol.numSat;
+        uint16_t gpsFixType = !STATE(GPS_FIX) ? 1 : (gpsSol.numSat < GPS_MIN_SAT_COUNT ? 2 : 3);
+        uint16_t sats = gpsSol.numSat;
         if (STATE(GPS_FIX) || sensorType == IBUS_SENSOR_TYPE_GPS_STATUS) {
             result = true;
             switch (sensorType) {

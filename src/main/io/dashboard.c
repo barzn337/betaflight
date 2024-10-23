@@ -203,7 +203,7 @@ static void updateRxStatus(void)
 {
     i2c_OLED_set_xy(dev, SCREEN_CHARACTER_COLUMN_COUNT - 2, 0);
     char rxStatus = '!';
-    if (rxIsReceivingSignal()) {
+    if (isRxReceivingSignal()) {
         rxStatus = 'r';
     } if (rxAreFlightChannelsValid()) {
         rxStatus = 'R';
@@ -379,8 +379,8 @@ static void showGpsPage(void)
 
     static uint8_t gpsTicker = 0;
     static uint32_t lastGPSSvInfoReceivedCount = 0;
-    if (GPS_svInfoReceivedCount != lastGPSSvInfoReceivedCount) {
-        lastGPSSvInfoReceivedCount = GPS_svInfoReceivedCount;
+    if (dashboardGpsNavSvInfoRcvCount != lastGPSSvInfoReceivedCount) {
+        lastGPSSvInfoReceivedCount = dashboardGpsNavSvInfoRcvCount;
         gpsTicker++;
         gpsTicker = gpsTicker % TICKER_CHARACTER_COUNT;
     }
@@ -419,7 +419,7 @@ static void showGpsPage(void)
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "RX: %d", GPS_packetCount);
+    tfp_sprintf(lineBuffer, "RX: %d", dashboardGpsPacketCount);
     padHalfLineBuffer();
     i2c_OLED_set_line(dev, rowIndex);
     i2c_OLED_send_string(dev, lineBuffer);
@@ -429,7 +429,7 @@ static void showGpsPage(void)
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "Dt: %d", gpsData.lastMessage - gpsData.lastLastMessage);
+    tfp_sprintf(lineBuffer, "Dt: %d", gpsSol.navIntervalMs);
     padHalfLineBuffer();
     i2c_OLED_set_line(dev, rowIndex);
     i2c_OLED_send_string(dev, lineBuffer);
@@ -439,7 +439,7 @@ static void showGpsPage(void)
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    strncpy(lineBuffer, gpsPacketLog, GPS_PACKET_LOG_ENTRY_COUNT);
+    strncpy(lineBuffer, dashboardGpsPacketLog, GPS_PACKET_LOG_ENTRY_COUNT);
     padHalfLineBuffer();
     i2c_OLED_set_line(dev, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
@@ -487,7 +487,7 @@ static void showSensorsPage(void)
 
 #if defined(USE_ACC)
     if (sensors(SENSOR_ACC)) {
-        tfp_sprintf(lineBuffer, format, "ACC", lrintf(acc.accADC[X]), lrintf(acc.accADC[Y]), lrintf(acc.accADC[Z]));
+        tfp_sprintf(lineBuffer, format, "ACC", lrintf(acc.accADC.x), lrintf(acc.accADC.y), lrintf(acc.accADC.z));
         padLineBuffer();
         i2c_OLED_set_line(dev, rowIndex++);
         i2c_OLED_send_string(dev, lineBuffer);
@@ -503,7 +503,7 @@ static void showSensorsPage(void)
 
 #ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
-        tfp_sprintf(lineBuffer, format, "MAG", lrintf(mag.magADC[X]), lrintf(mag.magADC[Y]), lrintf(mag.magADC[Z]));
+        tfp_sprintf(lineBuffer, format, "MAG", lrintf(mag.magADC.x), lrintf(mag.magADC.y), lrintf(mag.magADC.z));
         padLineBuffer();
         i2c_OLED_set_line(dev, rowIndex++);
         i2c_OLED_send_string(dev, lineBuffer);

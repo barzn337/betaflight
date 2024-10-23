@@ -630,7 +630,6 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
     rxRuntimeState->channelCount = CRSF_MAX_CHANNEL;
     rxRuntimeState->rcReadRawFn = crsfReadRawRC;
     rxRuntimeState->rcFrameStatusFn = crsfFrameStatus;
-    rxRuntimeState->rcFrameTimeUsFn = rxFrameTimeUs;
 
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
     if (!portConfig) {
@@ -680,5 +679,23 @@ bool crsfRxUseNegotiatedBaud(void)
 bool crsfRxIsActive(void)
 {
     return serialPort != NULL;
+}
+
+void crsfRxBind(void)
+{
+    if (serialPort != NULL) {
+        uint8_t bindFrame[] = {
+            CRSF_SYNC_BYTE,
+            0x07,  // frame length
+            CRSF_FRAMETYPE_COMMAND,
+            CRSF_ADDRESS_CRSF_RECEIVER,
+            CRSF_ADDRESS_FLIGHT_CONTROLLER,
+            CRSF_COMMAND_SUBCMD_RX,
+            CRSF_COMMAND_SUBCMD_RX_BIND,
+            0x9E,  // Command CRC8
+            0xE8,  // Packet CRC8
+        };
+        serialWriteBuf(serialPort, bindFrame, 9);
+    }
 }
 #endif

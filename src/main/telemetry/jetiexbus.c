@@ -183,7 +183,7 @@ static uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item);
 static uint8_t getNextActiveSensor(uint8_t currentSensor);
 
 // Jeti Ex Telemetry CRC calculations for a frame
-uint8_t calcCRC8(uint8_t *pt, uint8_t msgLen)
+uint8_t calcCRC8(const uint8_t *pt, uint8_t msgLen)
 {
     uint8_t crc=0;
     for (uint8_t mlen = 0; mlen < msgLen; mlen++) {
@@ -380,15 +380,15 @@ int32_t getSensorValue(uint8_t sensor)
 
 #if defined(USE_ACC)
     case EX_GFORCE_X:
-       return (int16_t)(((float)acc.accADC[0] / acc.dev.acc_1G) * 1000);
+       return (int16_t)(((float)acc.accADC.x / acc.dev.acc_1G) * 1000);
     break;
 
     case EX_GFORCE_Y:
-       return (int16_t)(((float)acc.accADC[1] / acc.dev.acc_1G) * 1000);
+       return (int16_t)(((float)acc.accADC.y / acc.dev.acc_1G) * 1000);
     break;
 
     case EX_GFORCE_Z:
-        return (int16_t)(((float)acc.accADC[2] / acc.dev.acc_1G) * 1000);
+        return (int16_t)(((float)acc.accADC.z / acc.dev.acc_1G) * 1000);
     break;
 #endif
 
@@ -455,7 +455,7 @@ uint8_t createExTelemetryValueMessage(uint8_t *exMessage, uint8_t item)
     return item;        // return the next item
 }
 
-void createExBusMessage(uint8_t *exBusMessage, uint8_t *exMessage, uint8_t packetID)
+void createExBusMessage(uint8_t *exBusMessage, const uint8_t *exMessage, uint8_t packetID)
 {
     uint16_t crc16;
 

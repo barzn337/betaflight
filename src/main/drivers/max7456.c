@@ -303,8 +303,8 @@ void max7456ReInit(void)
         } else if (VIN_IS_PAL(srdata)) {
             videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
         } else {
-            // No valid input signal, fallback to default (XXX NTSC for now)
-            videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
+            // No valid input signal, fallback to default (PAL)
+            videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
         }
         break;
     }
@@ -512,7 +512,7 @@ void max7456Write(uint8_t x, uint8_t y, const char *text)
 
 bool max7456LayerSupported(displayPortLayer_e layer)
 {
-    if (layer == DISPLAYPORT_LAYER_FOREGROUND || layer == DISPLAYPORT_LAYER_BACKGROUND) {
+    if (layer == DISPLAYPORT_LAYER_FOREGROUND) {
         return true;
     } else {
         return false;
