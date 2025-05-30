@@ -64,7 +64,6 @@
 #include "drivers/nvic.h"
 #include "drivers/persistent.h"
 #include "drivers/pin_pull_up_down.h"
-#include "drivers/pwm_output.h"
 #include "drivers/rx/rx_pwm.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
@@ -103,6 +102,7 @@
 #include "flight/pid.h"
 #include "flight/pid_init.h"
 #include "flight/position.h"
+#include "flight/pos_hold.h"
 #include "flight/servos.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
@@ -113,6 +113,7 @@
 #include "io/displayport_msp.h"
 #include "io/flashfs.h"
 #include "io/gimbal.h"
+#include "io/gimbal_control.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/pidaudio.h"
@@ -209,6 +210,9 @@ static void configureSPIBusses(void)
 #ifdef USE_SPI
     spiPreinit();
 
+#ifdef USE_SPI_DEVICE_0
+    spiInit(SPIDEV_0);
+#endif
 #ifdef USE_SPI_DEVICE_1
     spiInit(SPIDEV_1);
 #endif
@@ -260,7 +264,7 @@ static void sdCardAndFSInit(void)
 
 void init(void)
 {
-#ifdef SERIAL_PORT_COUNT
+#if SERIAL_PORT_COUNT > 0
     printfSerialInit();
 #endif
 
@@ -273,13 +277,13 @@ void init(void)
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
 
-#ifdef USE_HARDWARE_REVISION_DETECTION
-    detectHardwareRevision();
-#endif
-
 #if defined(USE_TARGET_CONFIG)
     // Call once before the config is loaded for any target specific configuration required to support loading the config
     targetConfiguration();
+#endif
+
+#if defined(USE_CONFIG_TARGET_PREINIT)
+    configTargetPreInit();
 #endif
 
     enum {
@@ -384,7 +388,6 @@ void init(void)
 
 #endif // CONFIG_IN_EXTERNAL_FLASH || CONFIG_IN_MEMORY_MAPPED_FLASH
 
-
     initEEPROM();
 
     ensureEEPROMStructureIsValid();
@@ -482,7 +485,7 @@ void init(void)
 
 #if defined(STM32F4) || defined(STM32G4) || defined(APM32F4)
     // F4 has non-8MHz boards
-    // G4 for Betaflight allow 24 or 27MHz oscillator
+    // G4 for Betaflight allow 8, 16, 24, 26 or 27MHz oscillator
     systemClockSetHSEValue(systemConfig()->hseMhz * 1000000U);
 #endif
 
@@ -518,49 +521,33 @@ void init(void)
     uartPinConfigure(serialPinConfig());
 #endif
 
-#if defined(AVOID_UART1_FOR_PWM_PPM)
-    serialInit(featureIsEnabled(FEATURE_SOFTSERIAL),
-            featureIsEnabled(FEATURE_RX_PPM) || featureIsEnabled(FEATURE_RX_PARALLEL_PWM) ? SERIAL_PORT_USART1 : SERIAL_PORT_NONE);
-#elif defined(AVOID_UART2_FOR_PWM_PPM)
-    serialInit(featureIsEnabled(FEATURE_SOFTSERIAL),
-            featureIsEnabled(FEATURE_RX_PPM) || featureIsEnabled(FEATURE_RX_PARALLEL_PWM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
-#elif defined(AVOID_UART3_FOR_PWM_PPM)
-    serialInit(featureIsEnabled(FEATURE_SOFTSERIAL),
-            featureIsEnabled(FEATURE_RX_PPM) || featureIsEnabled(FEATURE_RX_PARALLEL_PWM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
-#else
-    serialInit(featureIsEnabled(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
-#endif
+    serialInit(featureIsEnabled(FEATURE_SOFTSERIAL));
 
     mixerInit(mixerConfig()->mixerMode);
 
-    uint16_t idlePulse = motorConfig()->mincommand;
-    if (featureIsEnabled(FEATURE_3D)) {
-        idlePulse = flight3DConfig()->neutral3d;
-    }
-    if (motorConfig()->dev.motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        idlePulse = 0; // brushed motors
-    }
 #ifdef USE_MOTOR
     /* Motors needs to be initialized soon as posible because hardware initialization
      * may send spurious pulses to esc's causing their early initialization. Also ppm
      * receiver may share timer with motors so motors MUST be initialized here. */
-    motorDevInit(&motorConfig()->dev, idlePulse, getMotorCount());
+    motorDevInit(getMotorCount());
+    // TODO: add check here that motors actually initialised correctly
     systemState |= SYSTEM_STATE_MOTORS_READY;
-#else
-    UNUSED(idlePulse);
 #endif
 
-    if (0) {}
+    do {
 #if defined(USE_RX_PPM)
-    else if (featureIsEnabled(FEATURE_RX_PPM)) {
-        ppmRxInit(ppmConfig());
-    }
+        if (featureIsEnabled(FEATURE_RX_PPM)) {
+            ppmRxInit(ppmConfig());
+            break;
+        }
 #endif
 #if defined(USE_RX_PWM)
-    else if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM)) {
-        pwmRxInit(pwmConfig());
-    }
+        if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM)) {
+            pwmRxInit(pwmConfig());
+            break;
+        }
 #endif
+    } while (false);
 
 #ifdef USE_BEEPER
     beeperInit(beeperDevConfig());
@@ -569,7 +556,6 @@ void init(void)
 #if defined(USE_INVERTER) && !defined(SIMULATOR_BUILD)
     initInverters(serialPinConfig());
 #endif
-
 
 #ifdef TARGET_BUS_INIT
     targetBusInit();
@@ -828,7 +814,7 @@ void init(void)
 #endif
 
     positionInit();
-    autopilotInit(autopilotConfig());
+    autopilotInit();
 
 #if defined(USE_VTX_COMMON) || defined(USE_VTX_CONTROL)
     vtxTableInit();
@@ -860,6 +846,10 @@ void init(void)
 #endif
 
 #endif // VTX_CONTROL
+
+#ifdef USE_GIMBAL
+    gimbalInit();
+#endif
 
     batteryInit(); // always needs doing, regardless of features.
 
@@ -1001,8 +991,12 @@ void init(void)
 #endif
 
 // autopilot must be initialised before modes that require the autopilot pids
-#ifdef USE_ALT_HOLD_MODE
+#ifdef USE_ALTITUDE_HOLD
     altHoldInit();
+#endif
+
+#ifdef USE_POSITION_HOLD
+    posHoldInit();
 #endif
 
 #ifdef USE_GPS_RESCUE

@@ -24,7 +24,6 @@
 #include <stdbool.h>
 #include "pg/pg.h"
 
-
 typedef enum {
     TABLE_OFF_ON = 0,
     TABLE_UNIT,
@@ -82,6 +81,9 @@ typedef enum {
 #endif
 #ifdef USE_RANGEFINDER
     TABLE_RANGEFINDER_HARDWARE,
+#endif
+#ifdef USE_OPTICALFLOW
+    TABLE_OPTICALFLOW_HARDWARE,
 #endif
 #ifdef USE_GYRO_OVERFLOW_CHECK
     TABLE_GYRO_OVERFLOW_CHECK,
@@ -148,7 +150,8 @@ typedef enum {
 #endif
 #ifdef USE_WING
     TABLE_TPA_SPEED_TYPE,
-#endif
+    TABLE_YAW_TYPE,
+#endif // USE_WING
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 
@@ -156,7 +159,6 @@ typedef struct lookupTableEntry_s {
     const char * const *values;
     const uint8_t valueCount;
 } lookupTableEntry_t;
-
 
 #define VALUE_TYPE_OFFSET 0
 #define VALUE_SECTION_OFFSET 3
@@ -184,7 +186,6 @@ typedef enum {
     MODE_BITSET = (3 << VALUE_MODE_OFFSET),
     MODE_STRING = (4 << VALUE_MODE_OFFSET),
 } cliValueFlag_e;
-
 
 #define VALUE_TYPE_MASK (0x07)
 #define VALUE_SECTION_MASK (0x18)
@@ -243,7 +244,6 @@ typedef struct clivalue_s {
     uint16_t offset;
 } PTR_PACKING clivalue_t;
 
-
 extern const lookupTableEntry_t lookupTables[];
 extern const uint16_t valueTableEntryCount;
 
@@ -262,6 +262,8 @@ extern const char * const lookupTableMagHardware[];
 //extern const uint8_t lookupTableMagHardwareEntryCount;
 
 extern const char * const lookupTableRangefinderHardware[];
+
+extern const char * const lookupTableOpticalflowHardware[];
 
 extern const char * const lookupTableLedstripColors[];
 

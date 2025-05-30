@@ -23,6 +23,7 @@
 #include <stdbool.h>
 
 #include "common/axis.h"
+#include "common/chirp.h"
 #include "common/filter.h"
 #include "common/pwl.h"
 #include "common/time.h"
@@ -72,6 +73,8 @@
 #define TPA_MAX 100
 
 #ifdef USE_WING
+#define ANGLE_PITCH_OFFSET_MAX 450
+#define S_TERM_SCALE 0.01f
 #define TPA_LOW_RATE_MIN INT8_MIN
 #define TPA_GRAVITY_MAX 5000
 #define TPA_CURVE_STALL_THROTTLE_MAX 100
@@ -90,8 +93,19 @@
 
 typedef enum {
     TPA_MODE_PD,
-    TPA_MODE_D
+    TPA_MODE_D,
+#ifdef USE_WING
+    TPA_MODE_PDS,
+#endif
 } tpaMode_e;
+
+typedef enum {
+    TERM_P,
+    TERM_I,
+    TERM_D,
+    TERM_F,
+    TERM_S,
+} term_e;
 
 typedef enum {
     SPA_MODE_OFF,
@@ -167,6 +181,11 @@ typedef enum tpaSpeedType_e {
     TPA_SPEED_BASIC,
     TPA_SPEED_ADVANCED,
 } tpaSpeedType_t;
+
+typedef enum {
+    YAW_TYPE_RUDDER,
+    YAW_TYPE_DIFF_THRUST,
+} yawType_e;
 
 #define MAX_PROFILE_NAME_LENGTH 8u
 
@@ -302,6 +321,17 @@ typedef struct pidProfile_s {
     uint16_t tpa_speed_adv_thrust;      // For wings when tpa_speed_type = ADVANCED: stationary thrust in grams
     uint16_t tpa_speed_max_voltage;     // For wings: theoretical max voltage; used for throttle scailing with voltage for air speed estimation
     int16_t tpa_speed_pitch_offset;     // For wings: pitch offset in degrees*10 for craft speed estimation
+    uint8_t yaw_type;                   // For wings: type of yaw (rudder or differential thrust)
+    int16_t angle_pitch_offset;         // For wings: pitch offset for angle modes; in decidegrees; positive values tilting the wing down
+
+    uint8_t chirp_lag_freq_hz;              // leadlag1Filter cutoff/pole to shape the excitation signal
+    uint8_t chirp_lead_freq_hz;             // leadlag1Filter cutoff/zero
+    uint16_t chirp_amplitude_roll;          // amplitude roll in degree/second
+    uint16_t chirp_amplitude_pitch;         // amplitude pitch in degree/second
+    uint16_t chirp_amplitude_yaw;           // amplitude yaw in degree/second
+    uint16_t chirp_frequency_start_deci_hz; // start frequency in units of 0.1 hz
+    uint16_t chirp_frequency_end_deci_hz;   // end frequency in units of 0.1 hz
+    uint8_t chirp_time_seconds;             // excitation time
 } pidProfile_t;
 
 PG_DECLARE_ARRAY(pidProfile_t, PID_PROFILE_COUNT, pidProfiles);
@@ -442,7 +472,7 @@ typedef struct pidRuntime_s {
     uint8_t acroTrainerDebugAxis;
     float acroTrainerGain;
     bool acroTrainerActive;
-    int acroTrainerAxisState[2];  // only need roll and pitch
+    int acroTrainerAxisState[RP_AXIS_COUNT];  // only need roll and pitch
 #endif
 
 #ifdef USE_DYN_LPF
@@ -488,18 +518,20 @@ typedef struct pidRuntime_s {
 #endif
 
 #ifdef USE_ACC
-    pt3Filter_t attitudeFilter[2];  // Only for ROLL and PITCH
+    pt3Filter_t attitudeFilter[RP_AXIS_COUNT];  // Only for ROLL and PITCH
     pt1Filter_t horizonSmoothingPt1;
     uint16_t horizonDelayMs;
     float angleYawSetpoint;
     float angleEarthRef;
-    float angleTarget[2];
+    float angleTarget[RP_AXIS_COUNT];
     bool axisInAngleMode[3];
 #endif
 
 #ifdef USE_WING
     float spa[XYZ_AXIS_COUNT]; // setpoint pid attenuation (0.0 to 1.0). 0 - full attenuation, 1 - no attenuation
     tpaSpeedParams_t tpaSpeed;
+    float tpaFactorYaw;
+    float tpaFactorSterm[XYZ_AXIS_COUNT];
 #endif // USE_WING
 
 #ifdef USE_ADVANCED_TPA
@@ -507,6 +539,17 @@ typedef struct pidRuntime_s {
     float tpaCurvePwl_yValues[TPA_CURVE_PWL_SIZE];
     tpaCurveType_t tpaCurveType;
 #endif // USE_ADVANCED_TPA
+
+#ifdef USE_CHIRP
+    chirp_t chirp;
+    phaseComp_t chirpFilter;
+    float chirpLagFreqHz;
+    float chirpLeadFreqHz;
+    float chirpAmplitude[3];
+    float chirpFrequencyStartHz;
+    float chirpFrequencyEndHz;
+    float chirpTimeSeconds;
+#endif // USE_CHIRP
 } pidRuntime_t;
 
 extern pidRuntime_t pidRuntime;
@@ -541,7 +584,7 @@ float pidCompensateThrustLinearization(float throttle);
 
 #ifdef USE_AIRMODE_LPF
 void pidUpdateAirmodeLpf(float currentOffset);
-float pidGetAirmodeThrottleOffset();
+float pidGetAirmodeThrottleOffset(void);
 #endif
 
 #ifdef UNIT_TEST
@@ -559,7 +602,10 @@ float calcHorizonLevelStrength(void);
 void dynLpfDTermUpdate(float throttle);
 void pidSetItermReset(bool enabled);
 float pidGetPreviousSetpoint(int axis);
-float pidGetDT();
-float pidGetPidFrequency();
+float pidGetDT(void);
+float pidGetPidFrequency(void);
 
 float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo);
+#ifdef USE_CHIRP
+bool  pidChirpIsFinished();
+#endif

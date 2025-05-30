@@ -1,19 +1,20 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Betaflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Betaflight is free software. You can redistribute this software
+ * and/or modify this software under the terms of the GNU General
+ * Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later
+ * version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Betaflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
  * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this software.
+ * You should have received a copy of the GNU General Public
+ * License along with this software.
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
@@ -52,7 +53,7 @@ USBD_INFO_T gUsbDevice;
 
 #define USB_TIMEOUT  50
 
-static vcpPort_t vcpPort;
+static vcpPort_t vcpPort = {0};
 
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
@@ -203,8 +204,6 @@ static const struct serialPortVTable usbVTable[] = {
 
 serialPort_t *usbVcpOpen(void)
 {
-    vcpPort_t *s;
-
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, 0);
 
@@ -216,10 +215,9 @@ serialPort_t *usbVcpOpen(void)
     /* USB device and class init */
     USBD_Init(&gUsbDevice, USBD_SPEED_FS, &USBD_DESC_VCP, &USBD_CDC_CLASS, USB_DevUserHandler);
 
-    s = &vcpPort;
+    vcpPort_t *s = &vcpPort;
     s->port.vTable = usbVTable;
-
-    return (serialPort_t *)s;
+    return &s->port;
 }
 
 uint32_t usbVcpGetBaudRate(serialPort_t *instance)

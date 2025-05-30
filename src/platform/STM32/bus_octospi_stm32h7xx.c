@@ -113,12 +113,11 @@
 #define OSPI_SIOO_INST_EVERY_CMD         ((uint32_t)0x00000000U)
 #define OSPI_SIOO_INST_ONLY_FIRST_CMD    ((uint32_t)OCTOSPI_CCR_SIOO)
 
-MMFLASH_CODE_NOINLINE static void Error_Handler(void) {
+static MMFLASH_CODE_NOINLINE void Error_Handler(void) {
     while (1) {
         NOOP;
     }
 }
-
 
 #define __OSPI_GET_FLAG(__INSTANCE__, __FLAG__)           ((READ_BIT((__INSTANCE__)->SR, (__FLAG__)) != 0U) ? SET : RESET)
 #define __OSPI_CLEAR_FLAG(__INSTANCE__, __FLAG__)           WRITE_REG((__INSTANCE__)->FCR, (__FLAG__))
@@ -146,7 +145,6 @@ MMFLASH_CODE_NOINLINE static void octoSpiWaitStatusFlags(OCTOSPI_TypeDef *instan
         break;
     }
 }
-
 
 typedef struct {
     uint32_t OperationType;
@@ -205,7 +203,6 @@ MMFLASH_CODE_NOINLINE static ErrorStatus octoSpiConfigureCommand(OCTOSPI_TypeDef
         instance->DLR = (cmd->NbData - 1U);
       }
     }
-
 
     if (cmd->InstructionMode != OSPI_INSTRUCTION_NONE)
     {
@@ -306,7 +303,7 @@ MMFLASH_CODE_NOINLINE static ErrorStatus octoSpiConfigureCommand(OCTOSPI_TypeDef
     return status;
 }
 
-MMFLASH_CODE_NOINLINE ErrorStatus octoSpiCommand(OCTOSPI_TypeDef *instance, OSPI_Command_t *cmd)
+static MMFLASH_CODE_NOINLINE ErrorStatus octoSpiCommand(OCTOSPI_TypeDef *instance, OSPI_Command_t *cmd)
 {
     octoSpiWaitStatusFlags(instance, OCTOSPI_SR_BUSY, RESET);
 
@@ -328,12 +325,11 @@ MMFLASH_CODE_NOINLINE ErrorStatus octoSpiCommand(OCTOSPI_TypeDef *instance, OSPI
  *
  * Call optoSpiCommand first to configure the transaction stages.
  */
-MMFLASH_CODE_NOINLINE ErrorStatus octoSpiTransmit(OCTOSPI_TypeDef *instance, uint8_t *data)
+static MMFLASH_CODE_NOINLINE ErrorStatus octoSpiTransmit(OCTOSPI_TypeDef *instance, uint8_t *data)
 {
     if (data == NULL) {
         return ERROR;
     }
-
 
     __IO uint32_t              XferCount = READ_REG(instance->DLR) + 1U;
     uint8_t                    *pBuffPtr = data;
@@ -361,7 +357,7 @@ MMFLASH_CODE_NOINLINE ErrorStatus octoSpiTransmit(OCTOSPI_TypeDef *instance, uin
  *
  * Call optoSpiCommand first to configure the transaction stages.
  */
-MMFLASH_CODE_NOINLINE ErrorStatus octoSpiReceive(OCTOSPI_TypeDef *instance, uint8_t *data)
+static MMFLASH_CODE_NOINLINE ErrorStatus octoSpiReceive(OCTOSPI_TypeDef *instance, uint8_t *data)
 {
     if (data == NULL) {
         return ERROR;
@@ -419,7 +415,7 @@ typedef struct
 
 octoSpiMemoryMappedModeConfigurationRegisterBackup_t ospiMMMCRBackups[OCTOSPI_INTERFACE_COUNT];
 
-void octoSpiBackupMemoryMappedModeConfiguration(OCTOSPI_TypeDef *instance)
+static void octoSpiBackupMemoryMappedModeConfiguration(OCTOSPI_TypeDef *instance)
 {
     OCTOSPIDevice device = octoSpiDeviceByInstance(instance);
     if (device == OCTOSPIINVALID) {
@@ -439,7 +435,7 @@ void octoSpiBackupMemoryMappedModeConfiguration(OCTOSPI_TypeDef *instance)
     ospiMMMCRBackup->ABR = instance->ABR;
 }
 
-MMFLASH_CODE_NOINLINE void octoSpiRestoreMemoryMappedModeConfiguration(OCTOSPI_TypeDef *instance)
+static MMFLASH_CODE_NOINLINE void octoSpiRestoreMemoryMappedModeConfiguration(OCTOSPI_TypeDef *instance)
 {
     OCTOSPIDevice device = octoSpiDeviceByInstance(instance);
     if (device == OCTOSPIINVALID) {
@@ -520,7 +516,7 @@ MMFLASH_CODE_NOINLINE void octoSpiEnableMemoryMappedMode(OCTOSPI_TypeDef *instan
     octoSpiRestoreMemoryMappedModeConfiguration(instance);
 }
 
-MMFLASH_CODE_NOINLINE void octoSpiTestEnableDisableMemoryMappedMode(octoSpiDevice_t *octoSpi)
+static MMFLASH_CODE_NOINLINE void octoSpiTestEnableDisableMemoryMappedMode(octoSpiDevice_t *octoSpi)
 {
     OCTOSPI_TypeDef *instance = octoSpi->dev;
 
@@ -541,7 +537,6 @@ MMFLASH_CODE static uint32_t octoSpi_addressSizeFromValue(uint8_t addressSize)
 {
     return octoSpi_addressSizeMap[((addressSize + 1) / 8) - 1]; // rounds to nearest OSPI_ADDRESS_* value that will hold the address.
 }
-
 
 MMFLASH_CODE_NOINLINE bool octoSpiTransmit1LINE(OCTOSPI_TypeDef *instance, uint8_t instruction, uint8_t dummyCycles, const uint8_t *out, int length)
 {
@@ -792,7 +787,6 @@ MMFLASH_CODE_NOINLINE bool octoSpiTransmitWithAddress4LINES(OCTOSPI_TypeDef *ins
         status = octoSpiTransmit(instance, (uint8_t *)out);
     }
 
-
     return status == SUCCESS;
 }
 
@@ -827,7 +821,6 @@ MMFLASH_CODE_NOINLINE bool octoSpiInstructionWithAddress1LINE(OCTOSPI_TypeDef *i
 
     return status == SUCCESS;
 }
-
 
 void octoSpiInitDevice(OCTOSPIDevice device)
 {

@@ -67,26 +67,10 @@ static void usartConfigurePinInversion(uartPort_t *uartPort)
     }
 }
 
-static uartDevice_t *uartFindDevice(const uartPort_t *uartPort)
-{
-    for (uint32_t i = 0; i < UARTDEV_COUNT_MAX; i++) {
-        uartDevice_t *candidate = uartDevmap[i];
-
-        if (&candidate->port == uartPort) {
-            return candidate;
-        }
-    }
-    return NULL;
-}
-
-#if !(defined(STM32F4))
+#if UART_TRAIT_PINSWAP
 static void uartConfigurePinSwap(uartPort_t *uartPort)
 {
-    uartDevice_t *uartDevice = uartFindDevice(uartPort);
-    if (!uartDevice) {
-        return;
-    }
-
+    uartDevice_t *uartDevice = container_of(uartPort, uartDevice_t, port);
     if (uartDevice->pinSwap) {
         uartDevice->port.Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
         uartDevice->port.Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
@@ -119,7 +103,6 @@ void uartReconfigure(uartPort_t *uartPort)
     if (uartPort->port.mode & MODE_TX)
         uartPort->Handle.Init.Mode |= UART_MODE_TX;
 
-
     usartConfigurePinInversion(uartPort);
 #if !(defined(STM32F1) || defined(STM32F4))
     uartConfigurePinSwap(uartPort);
@@ -130,12 +113,9 @@ void uartReconfigure(uartPort_t *uartPort)
     usartTargetConfigure(uartPort);
 #endif
 
-    if (uartPort->port.options & SERIAL_BIDIR)
-    {
+    if (uartPort->port.options & SERIAL_BIDIR) {
         HAL_HalfDuplex_Init(&uartPort->Handle);
-    }
-    else
-    {
+    } else {
         HAL_UART_Init(&uartPort->Handle);
     }
 
@@ -164,7 +144,6 @@ void uartReconfigure(uartPort_t *uartPort)
             uartPort->rxDMAHandle.Init.MemBurst = DMA_MBURST_SINGLE;
 #endif
             uartPort->rxDMAHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
-
 
             HAL_DMA_DeInit(&uartPort->rxDMAHandle);
             HAL_DMA_Init(&uartPort->rxDMAHandle);
@@ -215,7 +194,6 @@ void uartReconfigure(uartPort_t *uartPort)
             uartPort->txDMAHandle.Init.MemBurst = DMA_MBURST_SINGLE;
 #endif
             uartPort->txDMAHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
-
 
             HAL_DMA_DeInit(&uartPort->txDMAHandle);
             HAL_StatusTypeDef status = HAL_DMA_Init(&uartPort->txDMAHandle);

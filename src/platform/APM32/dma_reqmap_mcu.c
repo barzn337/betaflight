@@ -1,19 +1,20 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Betaflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Betaflight is free software. You can redistribute this software
+ * and/or modify this software under the terms of the GNU General
+ * Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later
+ * version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Betaflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
  * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this software.
+ * You should have received a copy of the GNU General Public
+ * License along with this software.
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
@@ -30,6 +31,7 @@
 #include "drivers/dma_reqmap.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
+#include "drivers/serial_uart_impl.h"
 
 #include "pg/timerio.h"
 
@@ -69,20 +71,30 @@ static const dmaPeripheralMapping_t dmaPeripheralMapping[] = {
     { DMA_PERIPH_SDIO,    0,         { DMA(2, 3, 4), DMA(2, 6, 4) } },
 #endif // USE_SDCARD_SDIO
 
-#ifdef USE_UART
+#ifdef USE_UART1
     { DMA_PERIPH_UART_TX, UARTDEV_1, { DMA(2, 7, 4) } },
     { DMA_PERIPH_UART_RX, UARTDEV_1, { DMA(2, 5, 4), DMA(2, 2, 4) } },
+#endif
+#ifdef USE_UART2
     { DMA_PERIPH_UART_TX, UARTDEV_2, { DMA(1, 6, 4) } },
     { DMA_PERIPH_UART_RX, UARTDEV_2, { DMA(1, 5, 4) } },
+#endif
+#ifdef USE_UART3
     { DMA_PERIPH_UART_TX, UARTDEV_3, { DMA(1, 3, 4) } },
     { DMA_PERIPH_UART_RX, UARTDEV_3, { DMA(1, 1, 4) } },
+#endif
+#ifdef USE_UART4
     { DMA_PERIPH_UART_TX, UARTDEV_4, { DMA(1, 4, 4) } },
     { DMA_PERIPH_UART_RX, UARTDEV_4, { DMA(1, 2, 4) } },
+#endif
+#ifdef USE_UART5
     { DMA_PERIPH_UART_TX, UARTDEV_5, { DMA(1, 7, 4) } },
     { DMA_PERIPH_UART_RX, UARTDEV_5, { DMA(1, 0, 4) } },
+#endif
+#ifdef USE_UART6
     { DMA_PERIPH_UART_TX, UARTDEV_6, { DMA(2, 6, 5), DMA(2, 7, 5) } },
     { DMA_PERIPH_UART_RX, UARTDEV_6, { DMA(2, 1, 5), DMA(2, 2, 5) } },
-#endif // USE_UART
+#endif
 };
 
 #define TC(chan) DEF_TIM_CHANNEL(CH_ ## chan)

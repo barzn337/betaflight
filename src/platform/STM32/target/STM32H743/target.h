@@ -35,12 +35,6 @@
 
 #define USE_VCP
 
-#ifdef USE_SOFTSERIAL
-#define UNIFIED_SERIAL_PORT_COUNT       3
-#else
-#define UNIFIED_SERIAL_PORT_COUNT       1
-#endif
-
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
@@ -50,8 +44,6 @@
 #define USE_UART7
 #define USE_UART8
 #define USE_LPUART1
-
-#define SERIAL_PORT_COUNT       (UNIFIED_SERIAL_PORT_COUNT + 9)
 
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_2
@@ -67,6 +59,8 @@
 #define TARGET_IO_PORTE 0xffff
 #define TARGET_IO_PORTF 0xffff
 #define TARGET_IO_PORTG 0xffff
+#define TARGET_IO_PORTH 0xffff
+#define TARGET_IO_PORTI 0xffff
 
 #define USE_I2C
 #define I2C_FULL_RECONFIGURABILITY

@@ -57,7 +57,7 @@ void mspSerialAllocatePorts(void)
 {
     uint8_t portIndex = 0;
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP);
-    while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
+    while (portConfig && portIndex < ARRAYLEN(mspPorts)) {
         mspPort_t *mspPort = &mspPorts[portIndex];
 
         if (mspPort->port) {
@@ -69,8 +69,12 @@ void mspSerialAllocatePorts(void)
 
         if (mspConfig()->halfDuplex) {
             options |= SERIAL_BIDIR;
-        } else if ((portConfig->identifier >= SERIAL_PORT_USART1) && (portConfig->identifier <= SERIAL_PORT_USART_MAX)){
+        } else if (serialType(portConfig->identifier) == SERIALTYPE_UART
+                   || serialType(portConfig->identifier) == SERIALTYPE_LPUART) {
+            // TODO: SERIAL_CHECK_TX is broken on F7, disable it until it is fixed
+#if !defined(STM32F7) || defined(USE_F7_CHECK_TX)
             options |= SERIAL_CHECK_TX;
+#endif
         }
 
         serialPort_t *serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP, NULL, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, options);
@@ -87,8 +91,7 @@ void mspSerialAllocatePorts(void)
 
 void mspSerialReleasePortIfAllocated(serialPort_t *serialPort)
 {
-    for (uint8_t portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t *candidateMspPort = &mspPorts[portIndex];
+    for (mspPort_t *candidateMspPort = mspPorts; candidateMspPort < ARRAYEND(mspPorts); candidateMspPort++) {
         if (candidateMspPort->port == serialPort) {
             closeSerialPort(serialPort);
             memset(candidateMspPort, 0, sizeof(mspPort_t));
@@ -96,11 +99,10 @@ void mspSerialReleasePortIfAllocated(serialPort_t *serialPort)
     }
 }
 
-mspDescriptor_t getMspSerialPortDescriptor(const uint8_t portIdentifier)
+mspDescriptor_t getMspSerialPortDescriptor(const serialPortIdentifier_e portIdentifier)
 {
-    for (uint8_t portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t *candidateMspPort = &mspPorts[portIndex];
-        if (candidateMspPort->port->identifier == portIdentifier) {
+    for (mspPort_t *candidateMspPort = mspPorts; candidateMspPort < ARRAYEND(mspPorts); candidateMspPort++) {
+        if (candidateMspPort->port && candidateMspPort->port->identifier == portIdentifier) {
             return candidateMspPort->descriptor;
         }
     }
@@ -110,8 +112,7 @@ mspDescriptor_t getMspSerialPortDescriptor(const uint8_t portIdentifier)
 #if defined(USE_TELEMETRY)
 void mspSerialReleaseSharedTelemetryPorts(void)
 {
-    for (uint8_t portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t *candidateMspPort = &mspPorts[portIndex];
+    for (mspPort_t *candidateMspPort = mspPorts; candidateMspPort < ARRAYEND(mspPorts); candidateMspPort++) {
         if (candidateMspPort->sharedWithTelemetry) {
             closeSerialPort(candidateMspPort->port);
             memset(candidateMspPort, 0, sizeof(mspPort_t));
@@ -458,6 +459,7 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
     case MSP_PENDING_CLI:
         mspPort->pendingRequest = MSP_PENDING_NONE;
         mspPort->portState = PORT_CLI_ACTIVE;
+
         cliEnter(mspPort->port, true);
         break;
 #endif
@@ -481,7 +483,7 @@ static void mspSerialProcessReceivedReply(mspPort_t *msp, mspProcessReplyFnPtr m
     mspProcessReplyFn(&reply);
 }
 
-void mspProcessPacket(mspPort_t *mspPort, mspProcessCommandFnPtr mspProcessCommandFn, mspProcessReplyFnPtr mspProcessReplyFn)
+static void mspProcessPacket(mspPort_t *mspPort, mspProcessCommandFnPtr mspProcessCommandFn, mspProcessReplyFnPtr mspProcessReplyFn)
 {
     mspPostProcessFnPtr mspPostProcessFn = NULL;
 
@@ -520,8 +522,7 @@ void mspProcessPacket(mspPort_t *mspPort, mspProcessCommandFnPtr mspProcessComma
  */
 void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn, mspProcessReplyFnPtr mspProcessReplyFn)
 {
-    for (uint8_t portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
+    for (mspPort_t *mspPort = mspPorts; mspPort < ARRAYEND(mspPorts); mspPort++) {
         if (!mspPort->port) {
             continue;
         }
@@ -537,7 +538,12 @@ void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessComm
             if (c == '$') {
                 mspPort->portState = PORT_MSP_PACKET;
                 mspPort->packetState = MSP_HEADER_START;
-            } else if (evaluateNonMspData == MSP_EVALUATE_NON_MSP_DATA) {
+            } else if ((evaluateNonMspData == MSP_EVALUATE_NON_MSP_DATA)
+#ifdef USE_MSP_DISPLAYPORT
+                       // Don't evaluate non-MSP commands on VTX MSP port
+                       && (mspPort->port->identifier != displayPortMspGetSerial())
+#endif
+                       ) {
                 // evaluate the non-MSP data
                 if (c == serialConfig()->reboot_character) {
                     mspPort->pendingRequest = MSP_PENDING_BOOTLOADER_ROM;
@@ -576,8 +582,7 @@ void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessComm
 
 bool mspSerialWaiting(void)
 {
-    for (uint8_t portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
+    for (mspPort_t *mspPort = mspPorts; mspPort < ARRAYEND(mspPorts); mspPort++) {
         if (!mspPort->port) {
             continue;
         }
@@ -599,8 +604,7 @@ int mspSerialPush(serialPortIdentifier_e port, uint8_t cmd, uint8_t *data, int d
 {
     int ret = 0;
 
-    for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
+    for (mspPort_t *mspPort = mspPorts; mspPort < ARRAYEND(mspPorts); mspPort++) {
 
         // XXX Kludge!!! Avoid zombie VCP port (avoid VCP entirely for now)
         if (!mspPort->port
@@ -628,8 +632,7 @@ uint32_t mspSerialTxBytesFree(void)
 {
     uint32_t ret = UINT32_MAX;
 
-    for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
+    for (mspPort_t *mspPort = mspPorts; mspPort < ARRAYEND(mspPorts); mspPort++) {
         if (!mspPort->port) {
             continue;
         }

@@ -321,7 +321,6 @@
 #include "platform.h"
 #include "drivers/persistent.h"
 
-
 /**
   * @}
   */
@@ -461,7 +460,7 @@ static const pllConfig_t overclockLevels[] = {
 #define PLL_R      7 // PLL_R output is not used, can be any descent number
 #endif
 
-void SystemInitPLLParameters(void)
+static void SystemInitPLLParameters(void)
 {
     /* PLL setting for overclocking */
 
@@ -1227,7 +1226,6 @@ void SystemInit_ExtMemCtl(void)
 
 }
 #endif /* DATA_IN_ExtSDRAM */
-
 
 /**
   * @}

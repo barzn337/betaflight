@@ -1,19 +1,20 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Betaflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Betaflight is free software. You can redistribute this software
+ * and/or modify this software under the terms of the GNU General
+ * Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later
+ * version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Betaflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
  * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this software.
+ * You should have received a copy of the GNU General Public
+ * License along with this software.
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
@@ -50,7 +51,7 @@
 
 #define USB_TIMEOUT  50
 
-static vcpPort_t vcpPort;
+static vcpPort_t vcpPort = {0};
 
 otg_core_type otg_core_struct;
 
@@ -92,7 +93,7 @@ void CDC_SetCtrlLineStateCb(void (*cb)(void *context, uint16_t ctrlLineState), v
     ctrlLineStateCb = cb;
 }
 
-void usb_clock48m_select(usb_clk48_s clk_s)
+static void usb_clock48m_select(usb_clk48_s clk_s)
 {
     if(clk_s == USB_CLK_HICK)
     {
@@ -173,7 +174,7 @@ void usb_clock48m_select(usb_clk48_s clk_s)
     }
 }
 
-void usb_gpio_config(void)
+static void usb_gpio_config(void)
 {
     gpio_init_type gpio_init_struct;
 
@@ -255,7 +256,7 @@ uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
     return sendLength;
 }
 
-void TxTimerConfig(void)
+static void TxTimerConfig(void)
 {
     tmr_base_init(usbTxTmr, (CDC_POLLING_INTERVAL - 1), ((system_core_clock)/1000 - 1));
     tmr_clock_source_div_set(usbTxTmr, TMR_CLOCK_DIV1);
@@ -483,8 +484,6 @@ static const struct serialPortVTable usbVTable[] = {
 
 serialPort_t *usbVcpOpen(void)
 {
-    vcpPort_t *s;
-
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, 0);
     usb_gpio_config();
@@ -504,12 +503,12 @@ serialPort_t *usbVcpOpen(void)
         USB_ID,
         &cdc_class_handler,
         &cdc_desc_handler);
-    s = &vcpPort;
-    s->port.vTable = usbVTable;
 
     TxTimerConfig();
 
-    return (serialPort_t *)s;
+    vcpPort_t *s = &vcpPort;
+    s->port.vTable = usbVTable;
+    return &s->port;
 }
 
 uint32_t usbVcpGetBaudRate(serialPort_t *instance)

@@ -79,8 +79,6 @@
 
 #define USE_VIRTUAL_GYRO
 
-
-
 //#define USE_I2C_DEVICE_1
 //#define USE_I2C_DEVICE_2
 //#define USE_I2C_DEVICE_3
@@ -100,8 +98,6 @@
 //#define USE_UART6
 //#define USE_UART7
 //#define USE_UART8
-
-#define SERIAL_PORT_COUNT       (UNIFIED_SERIAL_PORT_COUNT + 1)
 
 //#define USE_SPI_DEVICE_1
 //#define USE_SPI_DEVICE_2

@@ -36,11 +36,10 @@
 #include "drivers/dma.h"
 #include "drivers/dma_reqmap.h"
 #include "drivers/dshot.h"
-#include "drivers/dshot_bitbang_impl.h"
+#include "dshot_bitbang_impl.h"
 #include "drivers/dshot_command.h"
 #include "drivers/motor.h"
 #include "drivers/nvic.h"
-#include "drivers/pwm_output.h" // XXX for pwmOutputPort_t motors[]; should go away with refactoring
 #include "drivers/time.h"
 #include "drivers/timer.h"
 
@@ -84,7 +83,7 @@ void bbTimerChannelInit(bbPort_t *bbPort)
     TIM_OCInitTypeDef TIM_OCStruct;
 
     TIM_OCStructInit(&TIM_OCStruct);
-    
+
     TIM_OCStruct.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_A;
     TIM_OCStruct.oc_idle_state = TRUE;
     TIM_OCStruct.oc_output_state = TRUE;
@@ -106,7 +105,7 @@ void bbTimerChannelInit(bbPort_t *bbPort)
     if (timhw->tag) {
         IO_t io = IOGetByTag(timhw->tag);
         IOConfigGPIOAF(io, IOCFG_AF_PP, timhw->alternateFunction);
-        IOInit(io, OWNER_DSHOT_BITBANG, 0); 
+        IOInit(io, OWNER_DSHOT_BITBANG, 0);
         TIM_CtrlPWMOutputs(timhw->tim, TRUE);
     }
 #endif
@@ -118,7 +117,7 @@ void bbTimerChannelInit(bbPort_t *bbPort)
 
 #ifdef USE_DMA_REGISTER_CACHE
 
-void bbLoadDMARegs(dmaResource_t *dmaResource, dmaRegCache_t *dmaRegCache)
+static void bbLoadDMARegs(dmaResource_t *dmaResource, dmaRegCache_t *dmaRegCache)
 {
     ((DMA_ARCH_TYPE *)dmaResource)->ctrl = dmaRegCache->CCR;
     ((DMA_ARCH_TYPE *)dmaResource)->dtcnt = dmaRegCache->CNDTR;

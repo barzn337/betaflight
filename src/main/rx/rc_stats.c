@@ -42,10 +42,9 @@ timeUs_t fullThrottleTimeUs = 0;
 uint32_t fullThrottleCounter = 0;
 int8_t previousThrottlePercent = 0;
 
-
 void rcStatsUpdate(timeUs_t currentTimeUs)
 {
-    uint32_t deltaT = currentTimeUs - previousTimeUs;
+    uint32_t deltaT = cmpTimeUs(currentTimeUs, previousTimeUs);
     previousTimeUs = currentTimeUs;
     const int8_t throttlePercent = calculateThrottlePercent();
 
@@ -84,7 +83,7 @@ timeUs_t RcStatsGetFullThrottleTimeUs(void)
 
 int8_t RcStatsGetAverageThrottle(void)
 {
-    return (float)totalTrottleNumber/(float)counter + 0.5; // rounding
+    return (float)totalTrottleNumber/(float)counter + 0.5f; // rounding
 }
 
 void NotifyRcStatsArming(void)

@@ -37,7 +37,7 @@
 
 #include "pg/bus_quadspi.h"
 
-static void Error_Handler(void) { while (1) { } }
+static void Error_Handler(void) { while (1); }
 
 void quadSpiInitDevice(QUADSPIDevice device)
 {
@@ -127,13 +127,14 @@ static const uint32_t quadSpi_addressSizeMap[] = {
 
 static uint32_t quadSpi_addressSizeFromValue(uint8_t addressSize)
 {
+    // TODO addressSize + 7) / 8)
     return quadSpi_addressSizeMap[((addressSize + 1) / 8) - 1]; // rounds to nearest QSPI_ADDRESS_* value that will hold the address.
 }
 
 /**
  * Return true if the bus is currently in the middle of a transmission.
  */
-bool quadSpiIsBusBusy(QUADSPI_TypeDef *instance)
+LOCAL_UNUSED_FUNCTION static bool quadSpiIsBusBusy(QUADSPI_TypeDef *instance)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
     if(quadSpiDevice[device].hquadSpi.State == HAL_QSPI_STATE_BUSY)
@@ -144,7 +145,7 @@ bool quadSpiIsBusBusy(QUADSPI_TypeDef *instance)
 
 #define QUADSPI_DEFAULT_TIMEOUT 10
 
-void quadSpiSelectDevice(QUADSPI_TypeDef *instance)
+static void quadSpiSelectDevice(QUADSPI_TypeDef *instance)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
 
@@ -173,7 +174,7 @@ void quadSpiSelectDevice(QUADSPI_TypeDef *instance)
     }
 }
 
-void quadSpiDeselectDevice(QUADSPI_TypeDef *instance)
+static void quadSpiDeselectDevice(QUADSPI_TypeDef *instance)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
 
@@ -201,14 +202,11 @@ void quadSpiDeselectDevice(QUADSPI_TypeDef *instance)
         break;
     }
 }
-
-
 
 bool quadSpiTransmit1LINE(QUADSPI_TypeDef *instance, uint8_t instruction, uint8_t dummyCycles, const uint8_t *out, int length)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
     HAL_StatusTypeDef status;
-
 
     QSPI_CommandTypeDef cmd;
     cmd.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
@@ -363,7 +361,6 @@ bool quadSpiReceiveWithAddress1LINE(QUADSPI_TypeDef *instance, uint8_t instructi
     return true;
 }
 
-
 bool quadSpiReceiveWithAddress4LINES(QUADSPI_TypeDef *instance, uint8_t instruction, uint8_t dummyCycles, uint32_t address, uint8_t addressSize, uint8_t *in, int length)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
@@ -513,7 +510,6 @@ bool quadSpiInstructionWithAddress1LINE(QUADSPI_TypeDef *instance, uint8_t instr
         quadSpiTimeoutUserCallback(instance);
         return false;
     }
-
 
     return true;
 }

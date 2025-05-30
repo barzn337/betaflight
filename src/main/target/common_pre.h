@@ -114,9 +114,13 @@
 #define USE_ACCGYRO_BMI270
 #define USE_GYRO_SPI_ICM42605
 #define USE_GYRO_SPI_ICM42688P
+#define USE_ACCGYRO_ICM45686
+#define USE_ACCGYRO_ICM45605
+#define USE_ACCGYRO_IIM42653
 #define USE_ACC_SPI_ICM42605
 #define USE_ACC_SPI_ICM42688P
 #define USE_ACCGYRO_LSM6DSV16X
+#define USE_ACCGYRO_ICM40609D
 
 #if TARGET_FLASH_SIZE > 512
 #define USE_ACC_MPU6050
@@ -245,7 +249,8 @@
 #define USE_EMFAT_AUTORUN
 #define USE_EMFAT_ICON
 #define USE_ESCSERIAL_SIMONK
-#define USE_ALT_HOLD_MODE
+#define USE_ALTITUDE_HOLD
+#define USE_POSITION_HOLD
 
 #if !defined(USE_GPS)
 #define USE_GPS
@@ -269,8 +274,9 @@
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04
 #define USE_RANGEFINDER_TF
+#define USE_OPTICALFLOW_MT
 
-#endif // TARGET_FLASH_SIZE > 512
+#endif // TARGET_FLASH_SIZE >= 1024
 
 #endif // !defined(CLOUD_BUILD)
 
@@ -298,7 +304,9 @@
 #define USE_HUFFMAN
 
 #define PID_PROFILE_COUNT 3
+#ifndef CONTROL_RATE_PROFILE_COUNT
 #define CONTROL_RATE_PROFILE_COUNT  6
+#endif
 
 #define USE_CLI_BATCH
 #define USE_RESOURCE_MGMT
@@ -396,12 +404,10 @@
 #define USE_GPS_RESCUE
 #endif // USE_GPS
 
-
 #if (defined(USE_OSD_HD) || defined(USE_OSD_SD)) && !defined(USE_OSD)
 // If either USE_OSD_SD for USE_OSD_HD are defined, ensure that USE_OSD is also defined
 #define USE_OSD
 #endif
-
 
 #if defined(USE_OSD)
 
@@ -483,3 +489,7 @@
 #undef USE_RUNAWAY_TAKEOFF
 
 #endif // USE_WING
+
+#if defined(USE_POSITION_HOLD) && !defined(USE_GPS)
+#error "USE_POSITION_HOLD requires USE_GPS to be defined"
+#endif

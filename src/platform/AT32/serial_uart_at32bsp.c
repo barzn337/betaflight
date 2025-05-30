@@ -1,19 +1,20 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Betaflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Betaflight is free software. You can redistribute this software
+ * and/or modify this software under the terms of the GNU General
+ * Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later
+ * version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Betaflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
  * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this software.
+ * You should have received a copy of the GNU General Public
+ * License along with this software.
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
@@ -48,40 +49,9 @@
 #include "drivers/serial_uart.h"
 #include "drivers/serial_uart_impl.h"
 
-static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(USE_INVERTER) && !defined(STM32F303xC)
-    UNUSED(uartPort);
-#else
-    bool inverted = uartPort->port.options & SERIAL_INVERTED;
-
-#ifdef USE_INVERTER
-    if (inverted) {
-        // Enable hardware inverter if available.
-        enableInverter(uartPort->USARTx, TRUE);
-    }
-#endif
-#endif
-}
-
-static uartDevice_t *uartFindDevice(uartPort_t *uartPort)
-{
-    for (uint32_t i = 0; i < UARTDEV_COUNT_MAX; i++) {
-        uartDevice_t *candidate = uartDevmap[i];
-
-        if (&candidate->port == uartPort) {
-            return candidate;
-        }
-    }
-    return NULL;
-}
-
 static void uartConfigurePinSwap(uartPort_t *uartPort)
 {
-    uartDevice_t *uartDevice = uartFindDevice(uartPort);
-    if (!uartDevice) {
-        return;
-    }
-
+    uartDevice_t *uartDevice = container_of(uartPort, uartDevice_t, port);
     if (uartDevice->pinSwap) {
         usart_transmit_receive_pin_swap(uartDevice->port.USARTx, TRUE);
     }
@@ -107,15 +77,15 @@ void uartReconfigure(uartPort_t *uartPort)
     if (uartPort->port.mode & MODE_RX) {
         usart_receiver_enable(uartPort->USARTx, TRUE);
     }
-    
+
     if (uartPort->port.mode & MODE_TX) {
         usart_transmitter_enable(uartPort->USARTx, TRUE);
     }
 
-    //config pin inverter
-    usartConfigurePinInversion(uartPort);
+    // config external pin inverter (no internal pin inversion available)
+    uartConfigureExternalPinInversion(uartPort);
 
-    //config pin swap
+    // config pin swap
     uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR) {
@@ -132,16 +102,16 @@ void uartReconfigure(uartPort_t *uartPort)
         if (uartPort->rxDMAResource) {
 
             dma_default_para_init(&DMA_InitStructure);
-            DMA_InitStructure.loop_mode_enable=TRUE;
-            DMA_InitStructure.peripheral_base_addr=uartPort->rxDMAPeripheralBaseAddr;
+            DMA_InitStructure.loop_mode_enable = TRUE;
+            DMA_InitStructure.peripheral_base_addr = uartPort->rxDMAPeripheralBaseAddr;
             DMA_InitStructure.priority  = DMA_PRIORITY_MEDIUM;
-            DMA_InitStructure.peripheral_inc_enable =FALSE;
-            DMA_InitStructure.peripheral_data_width =DMA_PERIPHERAL_DATA_WIDTH_BYTE;
-            DMA_InitStructure.memory_inc_enable =TRUE;
+            DMA_InitStructure.peripheral_inc_enable = FALSE;
+            DMA_InitStructure.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_BYTE;
+            DMA_InitStructure.memory_inc_enable = TRUE;
             DMA_InitStructure.memory_data_width = DMA_MEMORY_DATA_WIDTH_BYTE;
-            DMA_InitStructure.memory_base_addr=(uint32_t)uartPort->port.rxBuffer;
+            DMA_InitStructure.memory_base_addr = (uint32_t)uartPort->port.rxBuffer;
             DMA_InitStructure.buffer_size = uartPort->port.rxBufferSize;
-            DMA_InitStructure.direction= DMA_DIR_PERIPHERAL_TO_MEMORY;
+            DMA_InitStructure.direction = DMA_DIR_PERIPHERAL_TO_MEMORY;
 
             xDMA_DeInit(uartPort->rxDMAResource);
             xDMA_Init(uartPort->rxDMAResource, &DMA_InitStructure);
@@ -159,16 +129,16 @@ void uartReconfigure(uartPort_t *uartPort)
     if (uartPort->port.mode & MODE_TX) {
         if (uartPort->txDMAResource) {
             dma_default_para_init(&DMA_InitStructure);
-            DMA_InitStructure.loop_mode_enable=FALSE;
-            DMA_InitStructure.peripheral_base_addr=uartPort->txDMAPeripheralBaseAddr;
-            DMA_InitStructure.priority  = DMA_PRIORITY_MEDIUM;
-            DMA_InitStructure.peripheral_inc_enable =FALSE;
-            DMA_InitStructure.peripheral_data_width =DMA_PERIPHERAL_DATA_WIDTH_BYTE;
-            DMA_InitStructure.memory_inc_enable =TRUE;
+            DMA_InitStructure.loop_mode_enable = FALSE;
+            DMA_InitStructure.peripheral_base_addr = uartPort->txDMAPeripheralBaseAddr;
+            DMA_InitStructure.priority = DMA_PRIORITY_MEDIUM;
+            DMA_InitStructure.peripheral_inc_enable = FALSE;
+            DMA_InitStructure.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_BYTE;
+            DMA_InitStructure.memory_inc_enable = TRUE;
             DMA_InitStructure.memory_data_width = DMA_MEMORY_DATA_WIDTH_BYTE;
-            DMA_InitStructure.memory_base_addr=(uint32_t)uartPort->port.txBuffer;
+            DMA_InitStructure.memory_base_addr = (uint32_t)uartPort->port.txBuffer;
             DMA_InitStructure.buffer_size = uartPort->port.txBufferSize;
-            DMA_InitStructure.direction= DMA_DIR_MEMORY_TO_PERIPHERAL;
+            DMA_InitStructure.direction = DMA_DIR_MEMORY_TO_PERIPHERAL;
 
             xDMA_DeInit(uartPort->txDMAResource);
             xDMA_Init(uartPort->txDMAResource, &DMA_InitStructure);
@@ -181,7 +151,7 @@ void uartReconfigure(uartPort_t *uartPort)
         }
         usart_interrupt_enable(uartPort->USARTx, USART_TDC_INT, TRUE);
     }
-
+    // TODO: usart_enable is called twice
     usart_enable(uartPort->USARTx,TRUE);
 }
 
@@ -270,7 +240,6 @@ void uartTryStartTxDMA(uartPort_t *s)
 }
 #endif
 
-
 static void handleUsartTxDma(uartPort_t *s)
 {
     uartTryStartTxDMA(s);
@@ -328,7 +297,7 @@ void uartIrqHandler(uartPort_t *s)
     if (usart_flag_get(s->USARTx, USART_ROERR_FLAG) == SET) {
         usart_flag_clear(s->USARTx, USART_ROERR_FLAG);
     }
-    
+
     if (usart_flag_get(s->USARTx, USART_IDLEF_FLAG) == SET) {
         if (s->port.idleCallback) {
             s->port.idleCallback();

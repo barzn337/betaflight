@@ -109,7 +109,6 @@ static const motorMixer_t mixerY4[] = {
     { 1.0f,  1.0f, -1.0f,  0.0f },          // FRONT_L CW
 };
 
-
 #if (MAX_SUPPORTED_MOTORS >= 6)
 static const motorMixer_t mixerHex6X[] = {
     { 1.0f, -0.5f,  0.866025f,  1.0f },     // REAR_R
@@ -269,7 +268,7 @@ const mixer_t mixers[] = {
     { 1, true,  NULL },                // MIXER_SINGLECOPTER
     { 4, false, mixerAtail4 },         // MIXER_ATAIL4
     { 0, false, NULL },                // MIXER_CUSTOM
-    { 2, true,  NULL },                // MIXER_CUSTOM_AIRPLANE
+    { 1, true,  NULL },                // MIXER_CUSTOM_AIRPLANE
     { 3, true,  NULL },                // MIXER_CUSTOM_TRI
     { 4, false, mixerQuadX1234 },      // MIXER_QUADX_1234
     { 8, false, mixerOctoX8P },        // MIXER_OCTOX8P
@@ -397,7 +396,7 @@ void mixerResetRpmLimiter(void)
 // Create a custom mixer for launch control based on the current settings
 // but disable the front motors. We don't care about roll or yaw because they
 // are limited in the PID controller.
-void loadLaunchControlMixer(void)
+static void loadLaunchControlMixer(void)
 {
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         mixerRuntime.launchControlMixer[i] = mixerRuntime.currentMixer[i];

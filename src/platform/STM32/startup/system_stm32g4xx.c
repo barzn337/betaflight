@@ -118,7 +118,6 @@ void SystemInit(void)
 void SystemCoreClockUpdate(void)
 {
   uint32_t hse_value = persistentObjectRead(PERSISTENT_OBJECT_HSE_VALUE);
-
   uint32_t tmp, pllvco, pllr, pllsource, pllm;
 
   /* Get SYSCLK source -------------------------------------------------------*/
@@ -176,7 +175,7 @@ int SystemSYSCLKSource(void)
     case 0: // can't happen, fall through
         FALLTHROUGH;
     case 1:
-        src = 0; // HSI 
+        src = 0; // HSI
         break;
 
     case 2:
@@ -218,13 +217,14 @@ void Error_Handler(void)
  *
  * If mhz == 27 then scale it down to 9 with PLL=19 for base 171MHz with PLLN increment of 3 (9 * 3 = 27MHz a part)
  *
- * We don't prepare a separate frequency selection for 27MHz series in CLI, so what is set with "cpu_overclock" 
+ * We don't prepare a separate frequency selection for 27MHz series in CLI, so what is set with "cpu_overclock"
  * will result in slightly higher clock when examined with "status" command.
  */
 
 // Target frequencies for cpu_overclock (Levels 0 through 3)
 
 uint16_t sysclkSeries8[] =  { 168, 192, 216, 240 };
+uint16_t sysclkSeries26[] = { 169, 195, 221, 247 };
 uint16_t sysclkSeries27[] = { 171, 198, 225, 252 };
 #define OVERCLOCK_LEVELS ARRAYLEN(sysclkSeries8)
 
@@ -247,6 +247,13 @@ static bool systemComputePLLParameters(uint8_t src, uint16_t target, int *sysclk
         multDiff = vcoDiff / 16 * 2;
         *plln = 42 + multDiff;
         vcoFreq = 8 * *plln;
+    } else if (src == 26) {
+        *pllm = 2;
+        vcoBase = 169 * 2;
+        vcoDiff = vcoTarget - vcoBase;
+        multDiff = vcoDiff / 26 * 2;
+        *plln = 26 + multDiff;
+        vcoFreq = 13 * *plln;
     } else if (src == 27) {
         *pllm = 3;
         vcoBase = 171 * 2;
@@ -289,8 +296,10 @@ static bool systemClock_PLLConfig(int overclockLevel)
         pllSrc = RCC_PLLSOURCE_HSE;
         if (pllInput == 8 || pllInput == 16 || pllInput == 24) {
             targetMhz = sysclkSeries8[overclockLevel];
+        } else if (pllInput == 26) {
+            targetMhz = sysclkSeries26[overclockLevel];
         } else if (pllInput == 27) {
-            targetMhz = sysclkSeries8[overclockLevel];
+            targetMhz = sysclkSeries27[overclockLevel];
         } else {
             return false;
         }
@@ -303,11 +312,11 @@ void systemClockSetHSEValue(uint32_t frequency)
 {
     uint32_t freqMhz = frequency / 1000000;
 
-    // Only supported HSE crystal/resonator is 27MHz or integer multiples of 8MHz
+    // Only supported HSE crystal/resonator is 27MHz, 26 MHz or integer multiples of 8MHz
 
-    if (freqMhz != 27 && (freqMhz / 8) * 8 != freqMhz) {
+    if (freqMhz != 27 && freqMhz != 26 && (freqMhz / 8) * 8 != freqMhz) {
         return;
-    } 
+    }
 
     uint32_t hse_value = persistentObjectRead(PERSISTENT_OBJECT_HSE_VALUE);
 
@@ -354,7 +363,7 @@ void OverclockRebootIfNecessary(unsigned requestedOverclockLevel)
   * @brief System Clock Configuration
   * @retval None
   */
-// Extracted from MX generated main.c 
+// Extracted from MX generated main.c
 
 void SystemClock_Config(void)
 {
@@ -365,16 +374,18 @@ void SystemClock_Config(void)
 
   systemClock_PLLConfig(persistentObjectRead(PERSISTENT_OBJECT_OVERCLOCK_LEVEL));
 
-  // Configure the main internal regulator output voltage 
+  // Configure the main internal regulator output voltage
 
   HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
 
-  // Initializes the CPU, AHB and APB busses clocks 
+  // Initializes the CPU, AHB and APB busses clocks
 
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI48
-                              |RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  const bool useHse = persistentObjectRead(PERSISTENT_OBJECT_HSE_VALUE) != 0;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSI48 
+      | RCC_OSCILLATORTYPE_LSI 
+      | (useHse ? RCC_OSCILLATORTYPE_HSE : 0);
+  RCC_OscInitStruct.HSEState = useHse ? RCC_HSE_ON : RCC_HSE_OFF;
+ 
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
@@ -393,7 +404,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  // Initializes the CPU, AHB and APB busses clocks 
+  // Initializes the CPU, AHB and APB busses clocks
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -407,7 +418,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  // Initializes the peripherals clocks 
+  // Initializes the peripherals clocks
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2
                               |RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_UART4
@@ -440,7 +451,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  // Configures CRS 
+  // Configures CRS
 
   pInit.Prescaler = RCC_CRS_SYNC_DIV1;
   pInit.Source = RCC_CRS_SYNC_SOURCE_USB;

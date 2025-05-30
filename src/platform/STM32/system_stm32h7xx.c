@@ -28,10 +28,9 @@
 #include "drivers/persistent.h"
 #include "drivers/system.h"
 
-
 void SystemClock_Config(void);
 
-void configureMasterClockOutputs(void)
+LOCAL_UNUSED_FUNCTION static void configureMasterClockOutputs(void)
 {
     // Initialize pins for MCO1 and MCO2 for clock testing/verification
 
@@ -171,7 +170,6 @@ void systemResetToBootloader(bootloaderRequestType_e requestType)
     NVIC_SystemReset();
 }
 
-
 #if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H723xx) || defined(STM32H725xx) || defined(STM32H730xx)
 #define SYSMEMBOOT_VECTOR_TABLE ((uint32_t *)0x1ff09800)
 #elif defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
@@ -182,7 +180,7 @@ void systemResetToBootloader(bootloaderRequestType_e requestType)
 
 typedef void *(*bootJumpPtr)(void);
 
-void systemJumpToBootloader(void)
+static void systemJumpToBootloader(void)
 {
     __SYSCFG_CLK_ENABLE();
 
@@ -196,7 +194,6 @@ void systemJumpToBootloader(void)
 
     while (1);
 }
-
 
 void systemProcessResetReason(void)
 {

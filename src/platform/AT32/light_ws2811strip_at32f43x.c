@@ -1,19 +1,20 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Betaflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Betaflight is free software. You can redistribute this software
+ * and/or modify this software under the terms of the GNU General
+ * Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later
+ * version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Betaflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
  * See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this software.
+ * You should have received a copy of the GNU General Public
+ * License along with this software.
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
@@ -123,7 +124,6 @@ bool ws2811LedStripHardwareInit(ioTag_t ioTag)
     tmr_clock_source_div_set(timer,TMR_CLOCK_DIV1);
     tmr_cnt_dir_set(timer,TMR_COUNT_UP);
 
-
     tmr_output_config_type  tmr_OCInitStruct;
     tmr_output_default_para_init(&tmr_OCInitStruct);
     tmr_OCInitStruct.oc_mode= TMR_OUTPUT_CONTROL_PWM_MODE_A;
@@ -140,7 +140,6 @@ bool ws2811LedStripHardwareInit(ioTag_t ioTag)
 
     tmr_channel_value_set(timer, (timerHardware->channel-1)*2, 0);
     tmr_output_channel_config(timer,(timerHardware->channel-1)*2, &tmr_OCInitStruct);
-
 
     tmr_period_buffer_enable(timer, TRUE);
     tmr_output_channel_buffer_enable(timer, ((timerHardware->channel-1) * 2), TRUE);

@@ -88,12 +88,6 @@ void EXTIInit(void)
 #if defined(STM32F4)
     /* Enable SYSCFG clock otherwise the EXTI irq handlers are not called */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-#ifdef REMAP_TIM16_DMA
-    SYSCFG_DMAChannelRemapConfig(SYSCFG_DMARemap_TIM16, ENABLE);
-#endif
-#ifdef REMAP_TIM17_DMA
-    SYSCFG_DMAChannelRemapConfig(SYSCFG_DMARemap_TIM17, ENABLE);
-#endif
 #endif
     memset(extiChannelRecs, 0, sizeof(extiChannelRecs));
     memset(extiGroupPriority, 0xff, sizeof(extiGroupPriority));
@@ -193,7 +187,6 @@ void EXTIEnable(IO_t io)
 #endif
 }
 
-
 void EXTIDisable(IO_t io)
 {
 #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(STM32G4)
@@ -212,7 +205,7 @@ void EXTIDisable(IO_t io)
 
 #define EXTI_EVENT_MASK 0xFFFF // first 16 bits only, see also definition of extiChannelRecs.
 
-void EXTI_IRQHandler(uint32_t mask)
+static void EXTI_IRQHandler(uint32_t mask)
 {
     uint32_t exti_active = (EXTI_REG_IMR & EXTI_REG_PR) & mask;
 
@@ -232,7 +225,6 @@ void EXTI_IRQHandler(uint32_t mask)
     }                                            \
     struct dummy                                 \
     /**/
-
 
 _EXTI_IRQ_HANDLER(EXTI0_IRQHandler, 0x0001);
 _EXTI_IRQ_HANDLER(EXTI1_IRQHandler, 0x0002);

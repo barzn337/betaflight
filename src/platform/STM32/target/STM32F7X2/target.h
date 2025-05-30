@@ -34,20 +34,12 @@
 
 #define USE_VCP
 
-#ifdef USE_SOFTSERIAL
-#define UNIFIED_SERIAL_PORT_COUNT       3
-#else
-#define UNIFIED_SERIAL_PORT_COUNT       1
-#endif
-
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
 #define USE_UART4
 #define USE_UART5
 #define USE_UART6
-
-#define SERIAL_PORT_COUNT       (UNIFIED_SERIAL_PORT_COUNT + 6)
 
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_2
@@ -84,5 +76,7 @@
 
 #define FLASH_PAGE_SIZE ((uint32_t)0x4000) // 16K sectors
 
-// ITCM is in short supply so excluding fast code where preferred, not required.
+// ITCM is in short supply for this target.
+// For this target, functions decorated FAST_CODE_PREF will not be put into ITCM RAM; 
+// on other targets, the same function *will* go into ITCM RAM
 #define FAST_CODE_PREF

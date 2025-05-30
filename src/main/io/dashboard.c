@@ -131,7 +131,7 @@ static void resetDisplay(void)
     dashboardPresent = ug2864hsweg01InitI2C(dev);
 }
 
-void LCDprint(uint8_t i)
+static void LCDprint(uint8_t i)
 {
    i2c_OLED_send_char(dev, i);
 }
@@ -188,7 +188,6 @@ static void fillScreenWithCharacters(void)
     }
 }
 #endif
-
 
 static void updateTicker(void)
 {
@@ -364,7 +363,7 @@ static void showRateProfilePage(void)
     i2c_OLED_send_string(dev, lineBuffer);
 }
 
-#define SATELLITE_COUNT ARRAYLEN(GPS_svinfo_cno)
+#define SATELLITE_COUNT ARRAYLEN(GPS_svinfo)
 #define SATELLITE_GRAPH_LEFT_OFFSET ((SCREEN_CHARACTER_COLUMN_COUNT - SATELLITE_COUNT) / 2)
 
 #ifdef USE_GPS
@@ -392,11 +391,10 @@ static void showGpsPage(void)
 
     uint32_t index;
     for (index = 0; index < SATELLITE_COUNT && index < SCREEN_CHARACTER_COLUMN_COUNT; index++) {
-        uint8_t bargraphOffset = ((uint16_t) GPS_svinfo_cno[index] * VERTICAL_BARGRAPH_CHARACTER_COUNT) / (GPS_DBHZ_MAX - 1);
+        uint8_t bargraphOffset = ((uint16_t) GPS_svinfo[index].cno * VERTICAL_BARGRAPH_CHARACTER_COUNT) / (GPS_DBHZ_MAX - 1);
         bargraphOffset = MIN(bargraphOffset, VERTICAL_BARGRAPH_CHARACTER_COUNT - 1);
         i2c_OLED_send_char(dev, VERTICAL_BARGRAPH_ZERO_CHARACTER + bargraphOffset);
     }
-
 
     char fixChar = STATE(GPS_FIX) ? 'Y' : 'N';
     tfp_sprintf(lineBuffer, "Sats: %d Fix: %c", gpsSol.numSat, fixChar);
@@ -610,7 +608,6 @@ static void showDebugPage(void)
 }
 #endif
 
-
 static const pageEntry_t pages[PAGE_COUNT] = {
     { PAGE_WELCOME, FC_FIRMWARE_NAME,  showWelcomePage,    PAGE_FLAGS_SKIP_CYCLING },
     { PAGE_ARMED,   "ARMED",           showArmedPage,      PAGE_FLAGS_SKIP_CYCLING },
@@ -631,8 +628,7 @@ static const pageEntry_t pages[PAGE_COUNT] = {
 #endif
 };
 
-
-void dashboardSetPage(pageId_e pageId)
+static void dashboardSetPage(pageId_e pageId)
 {
     for (int i = 0; i < PAGE_COUNT; i++) {
         const pageEntry_t *candidatePage = &pages[i];

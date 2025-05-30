@@ -90,7 +90,6 @@ STATIC_UNIT_TESTED gyroSensor_t * const gyroSensorPtr = &gyro.gyroSensor1;
 STATIC_UNIT_TESTED gyroDev_t * const gyroDevPtr = &gyro.gyroSensor1.gyroDev;
 #endif
 
-
 #define DEBUG_GYRO_CALIBRATION_VALUE 3
 
 #define GYRO_OVERFLOW_TRIGGER_THRESHOLD 31980  // 97.5% full scale (1950dps for 2000dps gyro)
@@ -133,7 +132,7 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
     gyroConfig->simplified_gyro_filter_multiplier = SIMPLIFIED_TUNING_DEFAULT;
 }
 
-bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
+static bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
 {
     return gyroSensor->calibration.cyclesRemaining == 0;
 }
@@ -260,7 +259,7 @@ STATIC_UNIT_TESTED NOINLINE void performGyroCalibration(gyroSensor_t *gyroSensor
 }
 
 #if defined(USE_GYRO_SLEW_LIMITER)
-FAST_CODE int32_t gyroSlewLimiter(gyroSensor_t *gyroSensor, int axis)
+static FAST_CODE int32_t gyroSlewLimiter(gyroSensor_t *gyroSensor, int axis)
 {
     int32_t ret = (int32_t)gyroSensor->gyroDev.gyroADCRaw[axis];
     if (gyroConfig()->checkOverflow || gyro.gyroHasOverflowProtection) {
@@ -547,7 +546,7 @@ float gyroGetFilteredDownsampled(int axis)
     return gyroFilteredDownsampled[axis];
 }
 
-int16_t gyroReadSensorTemperature(gyroSensor_t gyroSensor)
+static int16_t gyroReadSensorTemperature(gyroSensor_t gyroSensor)
 {
     if (gyroSensor.gyroDev.temperatureFn) {
         gyroSensor.gyroDev.temperatureFn(&gyroSensor.gyroDev, &gyroSensor.gyroDev.temperature);

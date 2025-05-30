@@ -286,7 +286,7 @@ enum ledBarIds {
 };
 static uint8_t ledBarStates[LED_BAR_COUNT] = {0};
 
-void updateLedBars(void)
+static void updateLedBars(void)
 {
     memset(ledBarStates, 0, sizeof(ledBarStates));
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
@@ -356,7 +356,7 @@ static const char directionCodes[LED_DIRECTION_COUNT] = {
     [LED_DIRECTION_DOWN] = 'D'
 };
 static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT] = {
-    [LED_FUNCTION_COLOR] = 'C', 
+    [LED_FUNCTION_COLOR] = 'C',
     [LED_FUNCTION_FLIGHT_MODE] = 'F',
     [LED_FUNCTION_ARM_STATE] = 'A',
     [LED_FUNCTION_BATTERY] = 'L',
@@ -622,7 +622,7 @@ static void applyLedFixedLayers(void)
                     } else {
                         color = HSV(RED);
                         hOffset += MAX(scaleRange(gpsSol.numSat, 0, minSats, -30, 120), 0);
-                    } 
+                    }
                 }
                 break;
             }
@@ -1193,7 +1193,7 @@ static applyLayerFn_timed* layerTable[] = {
     [timRing] = &applyLedThrustRingLayer
 };
 
-bool isOverlayTypeUsed(ledOverlayId_e overlayType)
+static bool isOverlayTypeUsed(ledOverlayId_e overlayType)
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripStatusModeConfig()->ledConfigs[ledIndex];
@@ -1586,6 +1586,18 @@ void setLedProfile(uint8_t profile)
 {
     if (profile < LED_PROFILE_COUNT) {
         ledStripConfigMutable()->ledstrip_profile = profile;
+    }
+}
+
+uint8_t getLedBrightness(void)
+{
+    return ledStripConfig()->ledstrip_brightness;
+}
+
+void setLedBrightness(uint8_t brightness)
+{
+    if ( brightness <= 100 ) {
+        ledStripConfigMutable()->ledstrip_brightness = brightness;
     }
 }
 #endif

@@ -192,7 +192,7 @@ static void errorHandler(void) { while (1) { } }
 // Temperature sensor has minimum sample time of 9us.
 // With prescaler = 4 at 200MHz (AHB1), fADC = 50MHz (tcycle = 0.02us), 9us = 450cycles < 810
 
-void adcInitDevice(adcDevice_t *adcdev, int channelCount)
+static void adcInitDevice(adcDevice_t *adcdev, int channelCount)
 {
     ADC_HandleTypeDef *hadc = &adcdev->ADCHandle; // For clarity
 
@@ -240,7 +240,7 @@ void adcInitDevice(adcDevice_t *adcdev, int channelCount)
     }
 }
 
-int adcFindTagMapEntry(ioTag_t tag)
+static int adcFindTagMapEntry(ioTag_t tag)
 {
     for (int i = 0; i < ADC_TAG_MAP_COUNT; i++) {
         if (adcTagMap[i].tag == tag) {
@@ -260,7 +260,7 @@ int adcFindTagMapEntry(ioTag_t tag)
 #error Unknown MCU
 #endif
 
-void adcInitCalibrationValues(void)
+static void adcInitCalibrationValues(void)
 {
     adcVREFINTCAL = *VREFINT_CAL_ADDR >> VREFINT_CAL_SHIFT;
     adcTSCAL1 = *TEMPSENSOR_CAL1_ADDR >> VREFINT_CAL_SHIFT;
@@ -395,7 +395,7 @@ void adcInit(const adcConfig_t *config)
 
         adc->ADCHandle.Instance = adc->ADCx;
 
-        if (HAL_ADC_DeInit(&adc->ADCHandle) != HAL_OK) { 
+        if (HAL_ADC_DeInit(&adc->ADCHandle) != HAL_OK) {
             // ADC de-initialization Error
             errorHandler();
         }
@@ -424,7 +424,7 @@ void adcInit(const adcConfig_t *config)
         __HAL_RCC_ADC_CONFIG(RCC_ADCCLKSOURCE_CLKP);
 #endif
 
-        int configuredAdcChannels = BITCOUNT(adc->channelBits);
+        int configuredAdcChannels = popcount(adc->channelBits);
 
         adcInitDevice(adc, configuredAdcChannels);
 
@@ -529,11 +529,11 @@ void adcInit(const adcConfig_t *config)
 
         // Start conversion in DMA mode
 
-        if (HAL_ADC_Start_DMA(&adc->ADCHandle, (uint32_t *)&adcConversionBuffer[dmaBufferIndex], BITCOUNT(adc->channelBits)) != HAL_OK) {
+        if (HAL_ADC_Start_DMA(&adc->ADCHandle, (uint32_t *)&adcConversionBuffer[dmaBufferIndex], popcount(adc->channelBits)) != HAL_OK) {
             errorHandler();
         }
 
-        dmaBufferIndex += BITCOUNT(adc->channelBits);
+        dmaBufferIndex += popcount(adc->channelBits);
     }
 }
 
@@ -560,7 +560,7 @@ void adcInternalStartConversion(void)
     return;
 }
 
-uint16_t adcInternalRead(int channel)
+static uint16_t adcInternalRead(int channel)
 {
     int dmaIndex = adcOperatingConfig[channel].dmaIndex;
 
